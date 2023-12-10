@@ -133,7 +133,7 @@ void handleClient(int clientSocket)
                 response += '|' + to_string(lobbies[i].id) + '|' + lobbies[i].type;
                 for (size_t j = 0; j < lobbies[i].players.size(); j++)
                 {
-                    response += '|' + to_string(lobbies[i].players[j]);
+                    response += '|' + lobbies[i].players[j];
                 }
             }
             send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);

@@ -106,10 +106,11 @@ int main()
     for (size_t i = 1; i < lobbiesData.size(); i += 6)
     {
         Lobby lobby;
+        lobby.id = stoi(lobbiesData[i]);
         lobby.type = lobbiesData[i + 1];
         for (size_t j = i + 2; j < i + 6; j++)
         {
-            lobby.players.push_back(stoi(lobbiesData[j]));
+            lobby.players.push_back(lobbiesData[j]);
         }
         lobbies.push_back(lobby);
     }

@@ -9,7 +9,7 @@ class Lobby {
     public:
         int id;
         string type;
-        vector<int> players;
+        vector<string> players;
 
         void print()
         {

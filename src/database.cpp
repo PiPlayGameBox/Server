@@ -148,7 +148,7 @@ vector<Lobby> getLobbies(sqlite3 *db)
         lobby.type = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
         for (int i = 0; i < 4; i++)
         {
-            lobby.players.push_back(-1);
+            lobby.players.push_back("empty");
         }
         lobbies.push_back(lobby);
     }
