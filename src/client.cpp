@@ -96,6 +96,21 @@ int connectToServer()
     return clientSocket;
 }
 
+void sendConnectRequest(const int socket, const string &sessionToken, int id, const string &password)
+{
+    string request = "CONNECT|" + sessionToken + "|" + to_string(id) + "|" + password;
+    send(socket, request.c_str(), REQUEST_BUFFER_SIZE, 0);
+
+    // Receive the response from the server
+    char buffer[REQUEST_BUFFER_SIZE];
+    int bytesRead = recv(socket, buffer, REQUEST_BUFFER_SIZE, 0);
+    if (bytesRead > 0)
+    {
+        buffer[bytesRead] = '\0';
+        std::cout << "Received message from server: " << buffer << std::endl;
+    }
+}
+
 int main()
 {
     int clientSocket = connectToServer();
@@ -115,6 +130,7 @@ int main()
         lobbies.push_back(lobby);
     }
     lobbies[0].print();
+    sendConnectRequest(clientSocket, sessionToken, lobbies[0].id, "123456");
     sendQuitRequest(clientSocket, sessionToken);
 
     close(clientSocket);

@@ -83,6 +83,7 @@ void handleClient(int clientSocket)
     int bytesRead;
     string sessionToken;
     string response;
+    string username;
 
     // while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0)
     // {
@@ -110,7 +111,8 @@ void handleClient(int clientSocket)
         {
             {
                 lock_guard<mutex> lock(dbMutex);
-                sessionToken = createSessionToken(params[1]);
+                username = params[1];
+                sessionToken = createSessionToken(username);
                 if (checkUserLogin(db, params[1], params[2]))
                 {
                     response = "OK|";
@@ -137,6 +139,13 @@ void handleClient(int clientSocket)
                 }
             }
             send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
+        }
+        else if (params[0] == "CONNECT")
+        {
+            checkSessionToken(clientSocket, params[1], sessionToken);
+            response = "BYE";
+            send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
+            break;
         }
         else if (params[0] == "QUIT")
         {
