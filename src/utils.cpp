@@ -50,6 +50,14 @@ string createSessionToken(const string &username)
 
     BIO_free_all(bio);
 
+    for (size_t i = 0; i < hashedStr.length(); i++)
+    {
+        if (hashedStr[i] == '|')
+        {
+            hashedStr[i] = '_';
+        }
+    }
+
     return hashedStr;
 }
 

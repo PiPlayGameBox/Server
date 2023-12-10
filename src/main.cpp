@@ -81,8 +81,8 @@ void handleClient(int clientSocket)
     char buffer[1024];
     vector<string> params;
     int bytesRead;
-    string response;
     string sessionToken;
+    string response;
 
     // while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0)
     // {
@@ -113,23 +113,25 @@ void handleClient(int clientSocket)
                 sessionToken = createSessionToken(params[1]);
                 if (checkUserLogin(db, params[1], params[2]))
                 {
-                    response = "OK" + '|' + sessionToken;
+                    response = "OK|";
+                    response += sessionToken;
                 }
                 else
                 {
                     response = "ERROR";
                 }
             }
+
             send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
         }
         else if (params[0] == "GETLOBBIES")
         {
             checkSessionToken(clientSocket, params[1], sessionToken);
             response = "OK";
-            for (int i = 0; i < lobbies.size(); i++)
+            for (size_t i = 0; i < lobbies.size(); i++)
             {
                 response += '|' + to_string(lobbies[i].id) + '|' + lobbies[i].type;
-                for (int j = 0; j < lobbies[i].players.size(); j++)
+                for (size_t j = 0; j < lobbies[i].players.size(); j++)
                 {
                     response += '|' + to_string(lobbies[i].players[j]);
                 }

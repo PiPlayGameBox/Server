@@ -10,6 +10,18 @@ class Lobby {
         int id;
         string type;
         vector<int> players;
+
+        void print()
+        {
+            cout << "Lobby ID: " << id << endl;
+            cout << "Lobby Type: " << type << endl;
+            cout << "Lobby Players: ";
+            for (size_t i = 0; i < players.size(); i++)
+            {
+                cout << players[i] << " ";
+            }
+            cout << endl;
+        }
 };
 
 #endif

@@ -1,5 +1,6 @@
 #include "../lib/database.h"
 #include "../lib/utils.h"
+#include "../lib/lobby.h"
 
 #define REQUEST_BUFFER_SIZE 1024
 
@@ -98,10 +99,22 @@ int connectToServer()
 int main()
 {
     int clientSocket = connectToServer();
-    string sessionToken = sendLoginRequest(clientSocket, "admin", "123456");
-    string lobbies = sendGetLobbiesRequest(clientSocket, sessionToken);
+    string sessionToken = split(sendLoginRequest(clientSocket, "admin", "123456"), '|')[1];
+    string lobbiesResponse = sendGetLobbiesRequest(clientSocket, sessionToken);
+    vector<Lobby> lobbies;
+    vector<string> lobbiesData = split(lobbiesResponse, '|');
+    for (size_t i = 1; i < lobbiesData.size(); i += 6)
+    {
+        Lobby lobby;
+        lobby.type = lobbiesData[i + 1];
+        for (size_t j = i + 2; j < i + 6; j++)
+        {
+            lobby.players.push_back(stoi(lobbiesData[j]));
+        }
+        lobbies.push_back(lobby);
+    }
+    lobbies[0].print();
     sendQuitRequest(clientSocket, sessionToken);
-    cout << lobbies << endl;
 
     close(clientSocket);
 
