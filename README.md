@@ -1,6 +1,6 @@
 # Serveri çalıştırmak için bu kütüphanelerin kurulması gerekli
 # sudo apt-get install libssl-dev
-# sudo yum install openssl-devel
+# sudo apt-get install libsqlite3-dev
 
 # Ondan sonra make run diyerek server çalıştırabilir
 # Config.txt dosyasındaki i.p adresi, kullandığınız bilgisayarın i.p adresi olmalı

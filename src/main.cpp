@@ -51,6 +51,17 @@ bool checkUserLogin(sqlite3 *db, const string &username, const string &password)
     }
 }
 
+bool checkSessionToken(int clientSocket, const string &userToken, const string &sessionToken)
+{
+    if (userToken != sessionToken)
+    {
+        string response = "ERROR|YOU ARE NOT AUTHORIZED";
+        send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
+        return false;
+    }
+    return true;
+}
+
 void handleClient(int clientSocket)
 {
     sqlite3 *db;
@@ -70,6 +81,8 @@ void handleClient(int clientSocket)
     char buffer[1024];
     vector<string> params;
     int bytesRead;
+    string response;
+    string sessionToken;
 
     // while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0)
     // {
@@ -80,50 +93,59 @@ void handleClient(int clientSocket)
     //     send(clientSocket, buffer, bytesRead, 0);
     // }
 
-    bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-    buffer[bytesRead] = '\0';
-    cout << "Received message from client: " << buffer << endl;
-    params = split(buffer, '|');
-    if (params[0] == "REGISTER")
+    while (true)
     {
-        cout << "sa" << endl;
+        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+        buffer[bytesRead] = '\0';
+        cout << "Received message from client: " << buffer << endl;
+        params = split(buffer, '|');
+        if (params[0] == "REGISTER")
         {
-            lock_guard<mutex> lock(dbMutex);
-            insertUser(db, params[1], params[2], hashPassword(params[3]));
-        }
-        cout << "as" << endl;
-    }
-    else if (params[0] == "LOGIN")
-    {
-        string response;
-        {
-            lock_guard<mutex> lock(dbMutex);
-            if (checkUserLogin(db, params[1], params[2]))
             {
-                response = "OK" + '|' + createSessionToken(params[1]);
-            }
-            else
-            {
-                response = "ERROR";
+                lock_guard<mutex> lock(dbMutex);
+                insertUser(db, params[1], params[2], hashPassword(params[3]));
             }
         }
-        send(clientSocket, response.c_str(), response.length(), 0);
-    }
-    else if (params[0] == "GETLOBBIES")
-    {
-        string response;
-        response = "OK";
-        for (int i = 0; i < lobbies.size(); i++)
+        else if (params[0] == "LOGIN")
         {
-            response += '|' + to_string(lobbies[i].id) + '|' + lobbies[i].type;
-            for (int j = 0; j < lobbies[i].players.size(); j++)
             {
-                response += '|' + to_string(lobbies[i].players[j]);
+                lock_guard<mutex> lock(dbMutex);
+                sessionToken = createSessionToken(params[1]);
+                if (checkUserLogin(db, params[1], params[2]))
+                {
+                    response = "OK" + '|' + sessionToken;
+                }
+                else
+                {
+                    response = "ERROR";
+                }
             }
+            send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
         }
-        send(clientSocket, response.c_str(), response.length(), 0);
+        else if (params[0] == "GETLOBBIES")
+        {
+            checkSessionToken(clientSocket, params[1], sessionToken);
+            response = "OK";
+            for (int i = 0; i < lobbies.size(); i++)
+            {
+                response += '|' + to_string(lobbies[i].id) + '|' + lobbies[i].type;
+                for (int j = 0; j < lobbies[i].players.size(); j++)
+                {
+                    response += '|' + to_string(lobbies[i].players[j]);
+                }
+            }
+            send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
+        }
+        else if (params[0] == "QUIT")
+        {
+            checkSessionToken(clientSocket, params[1], sessionToken);
+            response = "BYE";
+            send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
+            break;
+        }
     }
 
+    cout << "Client disconnected" << endl;
     close(clientSocket);
     sqlite3_close(db);
 }

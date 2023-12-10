@@ -54,6 +54,21 @@ string sendGetLobbiesRequest(const int socket, const string &sessionToken)
     return string(buffer);
 }
 
+void sendQuitRequest(const int socket, const string &sessionToken)
+{
+    string request = "QUIT|" + sessionToken;
+    send(socket, request.c_str(), REQUEST_BUFFER_SIZE, 0);
+
+    // Receive the response from the server
+    char buffer[REQUEST_BUFFER_SIZE];
+    int bytesRead = recv(socket, buffer, REQUEST_BUFFER_SIZE, 0);
+    if (bytesRead > 0)
+    {
+        buffer[bytesRead] = '\0';
+        std::cout << "Received message from server: " << buffer << std::endl;
+    }
+}
+
 int connectToServer()
 {
     int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -83,8 +98,9 @@ int connectToServer()
 int main()
 {
     int clientSocket = connectToServer();
-    // string sessionToken = sendLoginRequest(clientSocket, "admin", "123456");
-    string lobbies = sendGetLobbiesRequest(clientSocket, "123456");
+    string sessionToken = sendLoginRequest(clientSocket, "admin", "123456");
+    string lobbies = sendGetLobbiesRequest(clientSocket, sessionToken);
+    sendQuitRequest(clientSocket, sessionToken);
     cout << lobbies << endl;
 
     close(clientSocket);
