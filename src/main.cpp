@@ -143,7 +143,10 @@ void handleClient(int clientSocket)
         else if (params[0] == "CONNECT")
         {
             checkSessionToken(clientSocket, params[1], sessionToken);
+            int lobbyId = stoi(params[2]);
+            string password = params[3];
             response = "BYE";
+
             send(clientSocket, response.c_str(), REQUEST_BUFFER_SIZE, 0);
             break;
         }
