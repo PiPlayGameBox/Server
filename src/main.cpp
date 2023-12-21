@@ -10,22 +10,24 @@ mutex dbMutex;
 
 vector<Lobby> lobbies;
 
-void onInterrupt(int socket)
+int serverSocket;
+
+void onInterrupt(int signal)
 {
-    close(socket);
+    close(serverSocket);
     cout << "Server closed" << endl;
     exit(0);
 }
 
-bool checkUserLogin(sqlite3 *db, const string &username, const string &password)
+int checkUserLogin(sqlite3 *db, const string &username, const string &password)
 {
-    string query = "SELECT password FROM Users WHERE username = ?";
+    string query = "SELECT id,password FROM Users WHERE username = ?";
     sqlite3_stmt *stmt;
 
     if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
     {
         cerr << "Error preparing SELECT query: " << sqlite3_errmsg(db) << endl;
-        return false;
+        return -1;
     }
 
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
@@ -33,21 +35,29 @@ bool checkUserLogin(sqlite3 *db, const string &username, const string &password)
     int result = sqlite3_step(stmt);
     if (result == SQLITE_ROW)
     {
-        string hashedPassword = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+        int id = sqlite3_column_int(stmt, 0);
+        string hashedPassword = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
         sqlite3_finalize(stmt);
 
-        return hashedPassword == hashPassword(password);
+        if (hashedPassword == hashPassword(password))
+        {
+            return id;
+        }
+        else
+        {
+            return -1;
+        }
     }
     else if (result == SQLITE_DONE)
     {
         sqlite3_finalize(stmt);
-        return false;
+        return -1;
     }
     else
     {
         cerr << "Error executing SELECT query: " << sqlite3_errmsg(db) << endl;
         sqlite3_finalize(stmt);
-        return false;
+        return -1;
     }
 }
 
@@ -78,9 +88,10 @@ void handleClient(int clientSocket)
     {
         cout << "Opened database successfully" << endl;
     }
-    char buffer[1024];
+    char buffer[REQUEST_BUFFER_SIZE];
     vector<string> params;
     int bytesRead;
+    int myId = -1;
     string sessionToken;
     string response;
     string username;
@@ -113,14 +124,17 @@ void handleClient(int clientSocket)
                 lock_guard<mutex> lock(dbMutex);
                 username = params[1];
                 sessionToken = createSessionToken(username);
-                if (checkUserLogin(db, params[1], params[2]))
+                myId = checkUserLogin(db, params[1], params[2]);
+                if (myId == -1)
                 {
-                    response = "OK|";
-                    response += sessionToken;
+                    response = "ERROR|INVALID USERNAME OR PASSWORD";
                 }
                 else
                 {
-                    response = "ERROR";
+                    response = "OK|";
+                    response += sessionToken;
+                    response += "|";
+                    response += to_string(myId);
                 }
             }
 
@@ -191,7 +205,7 @@ void createDatabase()
 int createConnection()
 {
     // Create a socket
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1)
     {
         cerr << "Error creating socket" << endl;
@@ -250,7 +264,7 @@ int main()
     sqlite3_open("db/piplaybox.db", &db);
     lobbies = getLobbies(db);
     sqlite3_close(db);
-    int serverSocket = createConnection();
+    serverSocket = createConnection();
 
     while (true)
     {

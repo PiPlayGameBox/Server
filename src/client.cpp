@@ -6,6 +6,13 @@
 
 using namespace std;
 
+int interrupted = 0;
+
+void onInterrupt(int signal)
+{
+    interrupted = 1;
+}
+
 void sendRegisterRequest(const int socket, const string &username, const string &email, const string &password)
 {
     string request = "REGISTER|" + username + "|" + email + "|" + password;
@@ -114,7 +121,10 @@ void sendConnectRequest(const int socket, const string &sessionToken, int id, co
 int main()
 {
     int clientSocket = connectToServer();
-    string sessionToken = split(sendLoginRequest(clientSocket, "admin", "123456"), '|')[1];
+    vector<string> loginResponse = split(sendLoginRequest(clientSocket, "admin", "123456"), '|');
+    string sessionToken = loginResponse[1];
+    int myId = stoi(loginResponse[2]);
+    cout << "My id: " << myId << endl;
     string lobbiesResponse = sendGetLobbiesRequest(clientSocket, sessionToken);
     vector<Lobby> lobbies;
     vector<string> lobbiesData = split(lobbiesResponse, '|');
